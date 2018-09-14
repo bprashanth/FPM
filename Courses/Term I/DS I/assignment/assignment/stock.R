@@ -27,8 +27,8 @@ if ( !file.exists(niftyCSV) ) {
 ni <- read.csv(niftyCSV, header = TRUE)
 
 # First, compute the weekly changes in the price (PC ) of the selected stock 
-# as well as in the nifty index values (IC). I did this by adding a new column 
-# to the R data frame that computed:
+# as well as in the nifty index values (IC). 
+# I did this by adding a new column to the R data frame that computed:
 # (closePriceCurrent - closePricePrevious) / closePricePrevious  
 cDat <- data.frame(co$X, co$Date, co$Close)
 cDat <- cbind(cDat, 
@@ -70,7 +70,14 @@ rownames(sanitizedM) <- paste(classes, "icici", sep="-")
 colnames(sanitizedM) <- paste(classes, "nifty", sep="-")
 
 # Given that IC is high, what is the probability that PC is low?
-# TODO
+# P(cDat$PC == “Low” | nDat$IC == “High”) = 
+#  p(cDat$PC == “Low”) * P(nDat$IC == “High” | cDat$PC == “Low”) / 
+#      p(nDat$IC == “High”)
+pcLowIcHigh = length(intersect(
+  which(cDat$Class == "Low"), which(nDat$Class == "High")))  
+icHigh = length(which(nDat$Class == "High"))
+print(paste("Probability of PC Low given IC High ", pcLowIcHigh / icHigh))
+
 
 # Are PC and IC independent?
 # No because X-squared = 37.474 and the probability of that happening given the
@@ -154,13 +161,12 @@ if (area >= 0.05) {
 
 # Are the weekly PC averages across high and low IC equal?
 # So we basically want to know, given N sample means, are the population means 
-# equal? we have a large enough sample that we can assume that the population of 
-# PCs is normally distribuetd, so our test statistic will hae a t distribution 
-# with N-1 degrees of freedom. We choose N=15 becase there are only 19 "High" 
-# samples in NIFTY. We can compare the computed t value with the critical value 
-# for a t distribution at the 97.5% cutoff (since this is a 2 tailed test). If 
-# the computed t value is to the left of the cutoff, it means the area under the 
-# t distribution curve > alpha.
+# equal? Our test statistic will have a t distribution with N-1 degrees of 
+# freedom. We choose N=15 becase there are only 19 "High" samples in NIFTY. 
+# We can compare the computed t value with the critical value for a t 
+# distribution at the 97.5% cutoff (since this is a 2 tailed test). If the 
+# computed t value is to the left of the cutoff, it means the area under the t 
+# distribution curve > alpha.
 n <- 15
 d <- head(cDat$PC[which(nDat$Class == "High")], n) - 
   head(cDat$PC[which(nDat$Class == "Low")], n)
@@ -169,9 +175,9 @@ sd <- sqrt(sum((d - dBar) ^ 2) / (n - 1))
 t <- (dBar - 0) / (sd / sqrt(n))
 k <- qt(.975, 14)
 if (t <= k) {
-  print(paste("Accepting H0; t value ", t))
+  print(paste("Accepting H0; t value ", t, " k value ", k))
 } else {
-  print(paste("Rejecting H0; t value ", t))
+  print(paste("Rejecting H0; t value ", t, " k value ", k))
 }
 
 # Is the variation of weekly PC when IC is low same as that of IC 
@@ -259,6 +265,27 @@ if ( area >= 0.05 ) {
 } else {
   print(paste("Rejecting H0; f value ", f))
 }
+
+# Find the correlation between PC and IC for the whole sample and also
+# separately for each combination of PC and IC classification. What can
+# you say about the relation?
+print(paste("PC x IC correlation ", 
+            cor(cDat$PC, nDat$IC, use = "complete.obs")))
+
+print(paste("PC x IC high correlation ", 
+            cor(head(cDat$PC[which(cDat$Class == "High")], 15), 
+                head(nDat$IC[which(nDat$Class == "High")], 15), 
+                use = "complete.obs")))
+
+print(paste("PC x IC medium correlation ", 
+            cor(head(cDat$PC[which(cDat$Class == "Medium")], 15), 
+                head(nDat$IC[which(nDat$Class == "Medium")], 15), 
+                use = "complete.obs")))
+
+print(paste("PC x IC low correlation ", 
+            cor(head(cDat$PC[which(cDat$Class == "Low")], 15), 
+                head(nDat$IC[which(nDat$Class == "Low")], 15), 
+                use = "complete.obs")))
 
 # Find a 95% confidence interval for average PC
 # We can find this by simply computing the z score for 0.975, which is the 

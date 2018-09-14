@@ -43,5 +43,5 @@ n <- c(n, length(which(normalMeans > 35 & normalMeans < 40)))
 n <- c(n, length(which(normalMeans > 40 & normalMeans < 45)))
 n <- c(n, length(which(normalMeans > 45 & normalMeans < 50)))
 
-chisq.test(s, n)
+print(chisq.test(s, n))
 hist(normalMeans)
